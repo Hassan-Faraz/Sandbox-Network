@@ -1,0 +1,165 @@
+Sandbox Network Report
+
+Configuration Steps:
+You need to create three VM Machine’s for this Project.
+•	Download the Virtual Box (VM) and install in your PC.
+•	Download the three OS for project.
+•	Ubuntu Desktop (.iso format) or our Desktop OS like (Kali Linux, Windows, etc..,).
+•	Ubuntu Server OS (.iso format).
+•	Application Server in Bitnami WordPress (.ova format).
+•	Add three OS in Virtual Box.
+
+
+Ubuntu Server OS Configuration Steps:
+
+Step 1: Create a New Virtual Machine (VM) for Ubuntu Server
+
+	Open VirtualBox.
+
+	Click on new to create a new virtual machine.
+
+	Name the VM (e.g., Ubuntu Server).
+
+	Select the type as Linux and the version as Ubuntu (64-bit).
+
+	Allocate memory (RAM) for the VM (e.g., 2048 MB or higher based on your system's capacity).
+
+	Choose to create a virtual hard disk now and set a sufficient disk size (e.g., 10 GB).
+
+	Click Create 
+Step 2: Configure the Network Interfaces
+
+You need two network interfaces on the Ubuntu Server VM to act as a router between the two subnets.
+	Go to Settings of your new VM.
+	Select Network.
+	Adapter 1: Set to Internal Network (name it differently, e.g., intnet). This will be for Subnet
+1. Click the Advanced tab and set the adapter type to PCnet-FAST III or another supported type. Note: Within the ubuntu server terminal, this card will typically have a network adapter name of enp0s8.
+	Adapter 2: Enable this adapter and set it to another Internal Network (name it differently, e.g., intnet1). This will be for Subnet 2. Within the ubuntu server terminal, this card will typically have a network adapter name of enp0s9.
+	Adapter 3: Set to NAT. Note: Within the ubuntu server terminal, this card will typically have a network adapter name of enp0s3. Its IP address will be assigned via DHCP. It will be used to provide access to the internet via the host computer.
+
+
+Step 3: Install Ubuntu Server
+
+	Start the VM and select the Ubuntu Server ISO as the boot disk.
+
+	Go through the installation process:
+
+	Set your time zone, keyboard layout, etc.
+	Create a user account and set a strong password.
+	When asked, select the option to install OpenSSH Server (to enable remote access later if needed).
+	Complete the installation, then reboot the VM.
+
+
+
+Step 4: Configure Static IPs on the Network Interfaces
+
+After installation, you'll need to assign static IP addresses to both network interfaces (each in different subnets).
+	Log in to the Ubuntu Server VM.
+
+	Edit the network configuration file:
+
+	sudo nano /etc/netplan/00-installer-config.yaml
+
+	Type this code.
+	Save it (CTRL + X) type (yes) and enter.
+	Apply the network changes
+	sudo netplan apply
+	ip a
+
+
+
+Step 5: Enable IP Forwarding
+
+To allow routing between the two subnets, you need to enable IP forwarding.
+
+	Open the sysctl configuration file:
+
+	sudo nano /etc/sysctl.conf
+
+	Uncomment the line (or add it if not present):
+	net.ipv4.ip_forward=1
+	Apply the changes:
+	sudo sysctl -p
+
+
+Step 6: Set Up IPTables for Routing
+
+You may also want to configure iptables to ensure packets are forwarded between the subnets.
+
+	Configure iptables to allow forwarding:
+
+	sudo iptables -A FORWARD -i enp0s3 -o enp0s8 -j ACCEPT
+	sudo iptables -A FORWARD -i enp0s8 -o enp0s3 -j ACCEPT
+	To make the changes permanent, you can save the iptables rules:
+	sudo apt install iptables-persistent
+	sudo netfilter-persistent save
+	sudo netfilter-persistent reload
+ 
+Ubuntu OS Configuration Steps:
+Step: Installing Ubuntu Desktop in VM
+
+To create a virtual machine and install a GUI-based OS from an ISO file
+
+	Launch VirtualBox
+	Click “New” to create a new machine
+	Fill in the details as requested so that the new machine is:
+	Named “Ubuntu Desktop”
+	The ISO named “ubuntu-24.04.1-desktop-amd64.iso” is selected
+	The checkbox for “Skip Unattended Installation” is checked
+	Click “Next”. Now ensure the machine has:
+	2048mb of Base Memory
+	Two processors
+	Click “Next”. Create a Virtual Hard Disk for the machine. This will need to be a minimum of 25GB.
+	Click “Next”. Verify your settings are as above and click “Finish”.
+	Click “Start” to boot your virtual machine
+	Select “Try or Install Ubuntu”
+	Click “Install Ubuntu”
+	You need to create an Ubuntu account and click a Restart Now.
+
+
+Step 2: Configure the Network Interfaces
+
+You need one network interfaces on the Ubuntu Desktop VM.
+
+	Go to Settings of your new VM.
+	Select Network.
+	Adapter 1: Set to Internal Network (name it differently, e.g., intnet).
+	Open Ubuntu desktop in VM and login.
+	Go to the settings > Network> enp0s3 setting> IPV4 > IPV4 Method change to (Manual)> Add address =192.168.11.2, Add netmask =255.255.255.0 or 24, Add gateway =192.168.11.1
+	Apply
+	Disconnect the Network and connect.
+ 
+Bitnami Web Application Configuration Step:
+To create a Bitnami virtual machine using VirtualBox
+
+Step 1: Install Bitnami Application in VM.
+
+	Click “File” then “Import appliance”.
+	Navigate to the file named “bitnami-wordpress-6.3.1-r0-debian-11-amd64.ova”.
+	Click “Open”.
+	Click “Next”.
+	Click “Finish”.
+	Click “Start” to launch the machine.
+	The first-time log in details is displayed on-screen. You will be required to reset the password on your first log in.
+	Close the Bitnami.
+
+
+Step 2: Configure the Network Interfaces
+
+
+	Go to Settings of your new VM.
+	Select Network.
+	Adapter 1: Set to Internal Network (name it differently, e.g., intnet1).
+	Open Bitnami Application in VM and login.
+	Type the code
+	sudo nano /etc/network/interfaces
+	auto enp0s3
+iface enp0s3 inet static
+address 192.168.111.2
+netmask 255.255.255.0
+gateway 192.168.111.1
+	Save it (CTRL + X) type (yes) and enter.
+	sudo ifdown enp0s3 && sudo ifup enp0s3
+	sudo systemctl restart networking
+	ip a
+
